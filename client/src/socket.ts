@@ -1,3 +1,6 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://mystrochat.onrender.com");
+// Turn off autoConnect so it waits for React!
+export const socket = io("https://mystrochat.onrender.com", {
+  autoConnect: false
+});
