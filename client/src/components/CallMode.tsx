@@ -19,6 +19,8 @@ export default function CallMode({ setMode, username, type }: CallProps) {
   const currentCall = useRef<MediaConnection | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     // Standard, reliable PeerJS config
     const peer = new Peer({
       config: {
@@ -30,76 +32,113 @@ export default function CallMode({ setMode, username, type }: CallProps) {
     });
     peerInstance.current = peer;
 
+    const attachRemoteStream = (remoteStream: MediaStream) => {
+      if (!mounted) return;
+      if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        
+        // Attempt to play immediately and on metadata load
+        remoteVideoRef.current.play().catch(e => console.error("Immediate play blocked:", e));
+        
+        remoteVideoRef.current.onloadedmetadata = () => {
+          remoteVideoRef.current?.play().catch(e => console.error("Play blocked on metadata:", e));
+        };
+      }
+    };
+
+    // --- Socket Listeners Setup ---
+    const handleChatStart = (partnerName: string) => {
+      if (!mounted) return;
+      setStatus(`Connecting to ${partnerName}...`);
+      
+      // Delay to ensure both peers are ready
+      setTimeout(() => {
+        if (mounted && peer.id) {
+          socket.emit("signal", { peerId: peer.id });
+        }
+      }, 500);
+    };
+
+    const handleSignal = (data: any) => {
+      if (!mounted) return;
+      setStatus(`Call Connected`);
+      const strangerPeerId = data.peerId;
+      
+      // Initiator Logic based on peerId comparison
+      if (peer.id && peer.id > strangerPeerId && myStreamRef.current) {
+        const call = peer.call(strangerPeerId, myStreamRef.current);
+        currentCall.current = call;
+        call.on("stream", attachRemoteStream);
+      }
+    };
+
+    const handlePartnerDisconnected = () => {
+      if (!mounted) return;
+      setStatus("Partner left. Finding new...");
+      if (currentCall.current) {
+        currentCall.current.close();
+        currentCall.current = null;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+      socket.emit("join-mode", type);
+    };
+
+    // Register handlers without wiping others
+    socket.on("chat start", handleChatStart);
+    socket.on("signal", handleSignal);
+    socket.on("partner disconnected", handlePartnerDisconnected);
+
+    // --- Media & WebRTC Setup ---
     navigator.mediaDevices.getUserMedia({ video: type === "video", audio: true })
       .then((stream) => {
-        myStreamRef.current = stream;
-        if (myVideoRef.current) myVideoRef.current.srcObject = stream;
-        
-        const attachRemoteStream = (remoteStream: MediaStream) => {
-          if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStream) {
-            remoteVideoRef.current.srcObject = remoteStream;
-            remoteVideoRef.current.onloadedmetadata = () => {
-              remoteVideoRef.current?.play().catch(e => console.error("Play blocked:", e));
-            };
-          }
-        };
+        if (!mounted) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
 
-        peer.on('open', (myPeerId) => {
+        myStreamRef.current = stream;
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+          myVideoRef.current.onloadedmetadata = () => {
+            myVideoRef.current?.play().catch(e => console.error("Local play blocked:", e));
+          };
+        }
+
+        peer.on('open', () => {
+          if (!mounted) return;
           setStatus("Finding partner...");
           socket.emit("join-mode", type);
-          
-          socket.on("chat start", (partnerName) => {
-            setStatus(`Connecting to ${partnerName}...`);
-            // Add a tiny delay to ensure both peers are fully ready before signaling
-            setTimeout(() => {
-              socket.emit("signal", { peerId: myPeerId });
-            }, 500);
-          });
-
-          // Initiator Logic
-          socket.on("signal", (data) => {
-            setStatus(`Call Connected`);
-            const strangerPeerId = data.peerId;
-            
-            if (myPeerId > strangerPeerId) {
-              const call = peer.call(strangerPeerId, stream);
-              currentCall.current = call;
-              call.on("stream", attachRemoteStream);
-            }
-          });
         });
 
         // Receiver Logic
         peer.on("call", (call) => {
+          if (!mounted) return;
           currentCall.current = call;
           call.answer(stream);
           call.on("stream", attachRemoteStream);
         });
       })
       .catch((err) => {
-        setStatus("Error: Camera/Mic locked or denied.");
+        if (!mounted) return;
+        setStatus("Error: Camera/Mic blocked or denied.");
         console.error("Media Error:", err);
       });
 
-    // Handle stranger leaving
-    socket.on("partner disconnected", () => {
-      setStatus("Partner left. Finding new...");
+    // Cleanup
+    return () => {
+      mounted = false;
+      socket.emit("next"); 
+      
+      // Target specific listener removal to avoid side-effects
+      socket.off("chat start", handleChatStart);
+      socket.off("signal", handleSignal);
+      socket.off("partner disconnected", handlePartnerDisconnected);
+      
       if (currentCall.current) {
         currentCall.current.close();
-        currentCall.current = null;
       }
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-      socket.emit("join-mode", type);
-    });
-
-    // Safe Cleanup on unmount
-    return () => {
-      socket.emit("next"); 
-      socket.off("chat start");
-      socket.off("signal");
-      socket.off("partner disconnected");
-      
-      if (currentCall.current) currentCall.current.close();
       peer.destroy();
       
       if (myStreamRef.current) {
@@ -113,7 +152,9 @@ export default function CallMode({ setMode, username, type }: CallProps) {
       currentCall.current.close();
       currentCall.current = null;
     }
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
     
     setStatus("Finding new partner...");
     socket.emit("next");              
