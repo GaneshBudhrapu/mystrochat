@@ -9,7 +9,7 @@ interface CallProps {
 }
 
 export default function CallMode({ setMode, username, type }: CallProps) {
-  const [status, setStatus] = useState("Accessing camera/mic...");
+  const [status, setStatus] = useState("Finding partner...");
   
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
