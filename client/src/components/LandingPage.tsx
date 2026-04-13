@@ -9,7 +9,7 @@ export default function LandingPage({ setMode, onlineUsers, username }: LandingP
     <div className="landing-container">
       
       <div className="landing-header">
-        <h1 className="logo">MystroChat ⚡</h1>
+        <h1 className="logo">Mystro<span>Chat</span> ⚡</h1>
         <p className="welcome-text">Welcome, <b>{username}</b></p>
         
         <div className="stats-badge">

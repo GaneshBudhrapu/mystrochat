@@ -59,7 +59,7 @@ export default function CallMode({ setMode, username, type }: CallProps) {
       }, 500);
     };
 
-    const handleSignal = (data: any) => {
+    const handleSignal = (data: { peerId: string }) => {
       if (!mounted) return;
       setStatus(`Call Connected`);
       const strangerPeerId = data.peerId;
