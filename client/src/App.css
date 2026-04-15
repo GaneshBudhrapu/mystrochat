@@ -22,7 +22,7 @@
 
 * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
 html, body, #root { height: 100%; min-height: 100dvh; margin: 0; padding: 0; }
-body { background: var(--bg-dark); background-image: var(--bg-gradient); color: var(--text-main); overflow-x: hidden; }
+body { background: var(--bg-dark); background-image: var(--bg-gradient); color: var(--text-main); overflow: hidden; }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
@@ -33,7 +33,8 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 /* --- APP WRAPPER --- */
 .app {
   display: flex; justify-content: center; align-items: center; 
-  height: 100dvh; padding: 24px;
+  height: 100dvh; padding: 16px;
+  min-height: 0;
 }
 
 /* On very small mobile, remove container padding so it looks like a native app */
@@ -48,10 +49,11 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   overflow: hidden; display: flex; flex-direction: column;
+  min-height: 0;
 }
 
-.chat-container { height: 90dvh; max-height: 900px; }
-.landing-container { max-width: 500px; padding: 48px 32px; text-align: center; }
+.chat-container { height: calc(100dvh - 32px); max-height: none; }
+.landing-container { max-width: 500px; max-height: calc(100dvh - 32px); padding: 36px 28px; text-align: center; overflow-y: auto; }
 
 @media (max-width: 600px) {
   .chat-container { height: 100dvh; max-height: 100dvh; border-radius: 0; border: none; }
@@ -60,11 +62,12 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 
 /* --- HEADER --- */
 .header {
-  padding: 20px 24px;
+  padding: 16px 22px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
   border-bottom: 1px solid var(--glass-border);
   display: flex; justify-content: space-between; align-items: center;
   gap: 16px;
+  flex: 0 0 auto;
 }
 .header h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0; display: flex; align-items: center; gap: 8px;}
 .sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
@@ -103,6 +106,7 @@ button:active { transform: translateY(0); }
 .chat-box {
   flex: 1; padding: 24px; overflow-y: auto;
   display: flex; flex-direction: column; gap: 16px;
+  min-height: 0;
   background:
     linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
@@ -142,8 +146,11 @@ button:active { transform: translateY(0); }
 
 /* Responsive Input Area to stay above mobile keyboard */
 .input-area {
-  display: flex; gap: 12px; padding: 16px 24px;
-  background: rgba(8, 9, 10, 0.72); border-top: 1px solid var(--glass-border);
+  display: flex; gap: 12px; padding: 12px 22px;
+  background: #090b0c; border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: none;
+  flex: 0 0 auto;
 }
 input {
   flex: 1; min-width: 0; padding: 14px 20px; border-radius: 8px;
@@ -164,8 +171,8 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
 }
 
 .icon-btn {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -225,7 +232,7 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
 
 /* --- VIDEO GRID --- */
 .video-grid {
-  flex: 1; display: grid; gap: 16px; padding: 24px;
+  flex: 1; display: grid; gap: 14px; padding: 18px;
   grid-template-columns: 1fr; grid-template-rows: 1fr 1fr;
   min-height: 0; /* Prevents overflow from content size */
 }
@@ -253,7 +260,7 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
 /* ==========================================
    LANDING PAGE PREMIUM UI
    ========================================== */
-.landing-header { margin-bottom: 40px; }
+.landing-header { margin-bottom: 28px; }
 
 .logo {
   font-size: 42px; font-weight: 800; letter-spacing: -1px; margin: 0 0 12px 0;
@@ -285,7 +292,7 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
 
 .action-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 28px 20px; border-radius: 8px;
+  padding: 22px 18px; border-radius: 8px;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--glass-border);
   text-align: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
