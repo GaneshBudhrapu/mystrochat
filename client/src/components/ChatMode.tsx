@@ -66,6 +66,7 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showStickerTray, setShowStickerTray] = useState(false);
+  const [hasPartner, setHasPartner] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,9 +74,13 @@ export default function ChatMode({ setMode, username }: ChatProps) {
     // 1. Join the queue on load
     socket.emit("join-mode", "chat");
 
-    socket.on("waiting", () => setStatus("Waiting for partner..."));
+    socket.on("waiting", () => {
+      setHasPartner(false);
+      setStatus("Waiting for partner...");
+    });
     
     socket.on("chat start", (partnerName) => {
+      setHasPartner(true);
       setStatus(`Connected to ${partnerName}`);
       setMessages([]); 
     });
@@ -93,6 +98,8 @@ export default function ChatMode({ setMode, username }: ChatProps) {
 
     // 🐛 THE FIX: Auto-rejoin the queue if the stranger leaves
     socket.on("partner disconnected", () => {
+      setHasPartner(false);
+      setShowStickerTray(false);
       setStatus("Stranger disconnected... Finding new partner...");
       socket.emit("join-mode", "chat"); 
     });
@@ -107,6 +114,8 @@ export default function ChatMode({ setMode, username }: ChatProps) {
     });
 
     socket.on("user blocked", (blockedName: string) => {
+      setHasPartner(false);
+      setShowStickerTray(false);
       setMessages([]);
       setStatus(`Blocked ${blockedName}. Finding new user...`);
       socket.emit("join-mode", "chat");
@@ -132,6 +141,10 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   }, [messages, isTyping]);
 
   const sendMessage = () => {
+    if (!hasPartner) {
+      setStatus("Wait until you connect with someone.");
+      return;
+    }
     if (!input.trim()) return;
     const message: ChatMessage = { sender: "you", kind: "text", content: input.trim() };
     setMessages((prev) => [...prev, message]);
@@ -140,6 +153,10 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const sendMediaMessage = (kind: "image" | "gif", content: string) => {
+    if (!hasPartner) {
+      setStatus("Wait until you connect with someone.");
+      return;
+    }
     const cleanContent = content.trim();
     if (!cleanContent) return;
 
@@ -149,6 +166,12 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const handleImagePick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!hasPartner) {
+      setStatus("Wait until you connect with someone.");
+      event.target.value = "";
+      return;
+    }
+
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -175,6 +198,11 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const handleGif = () => {
+    if (!hasPartner) {
+      setStatus("Wait until you connect with someone.");
+      return;
+    }
+
     const gifUrl = window.prompt("Paste a GIF link or pick a sticker below");
     if (!gifUrl) return;
     sendMediaMessage("gif", gifUrl);
@@ -186,6 +214,8 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const handleNext = () => {
+    setHasPartner(false);
+    setShowStickerTray(false);
     socket.emit("next");              // Tell server to drop partner
     socket.emit("join-mode", "chat"); // 🐛 BUG 1 FIX: Re-join the queue!
     setMessages([]);
@@ -193,11 +223,15 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const handleReport = () => {
+    if (!hasPartner) return;
     socket.emit("report-user", "Reported from 1-on-1 chat");
     setStatus("Report submitted.");
   };
 
   const handleBlock = () => {
+    if (!hasPartner) return;
+    setHasPartner(false);
+    setShowStickerTray(false);
     socket.emit("block-user");
     setMessages([]);
     setStatus("Blocking user...");
@@ -214,8 +248,8 @@ export default function ChatMode({ setMode, username }: ChatProps) {
         <div className="right-header">
           <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#22c55e" }}>{status}</p>
           <div className="moderation-actions">
-            <button className="btn-secondary compact-btn" onClick={handleReport}>Report</button>
-            <button className="btn-secondary compact-btn" onClick={handleBlock}>Block</button>
+            <button className="btn-secondary compact-btn" onClick={handleReport} disabled={!hasPartner}>Report</button>
+            <button className="btn-secondary compact-btn" onClick={handleBlock} disabled={!hasPartner}>Block</button>
             <button className="btn-danger compact-btn" onClick={() => setMode("landing")}>Leave</button>
           </div>
         </div>
@@ -248,7 +282,7 @@ export default function ChatMode({ setMode, username }: ChatProps) {
 
       <div className="input-area chat-input-area">
         <div className="media-actions" aria-label="Message extras">
-          <button className="icon-btn" onClick={() => imageInputRef.current?.click()} aria-label="Send image">
+          <button className="icon-btn" onClick={() => imageInputRef.current?.click()} aria-label="Send image" disabled={!hasPartner}>
             <GalleryIcon />
           </button>
           <button
@@ -257,6 +291,7 @@ export default function ChatMode({ setMode, username }: ChatProps) {
             onDoubleClick={handleGif}
             aria-label="Open stickers"
             aria-expanded={showStickerTray}
+            disabled={!hasPartner}
           >
             <StickerIcon />
           </button>
@@ -286,6 +321,7 @@ export default function ChatMode({ setMode, username }: ChatProps) {
             type="file"
             accept="image/*"
             onChange={handleImagePick}
+            disabled={!hasPartner}
           />
         </div>
         <div className="message-composer">
@@ -293,12 +329,13 @@ export default function ChatMode({ setMode, username }: ChatProps) {
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              socket.emit("typing");
+              if (hasPartner) socket.emit("typing");
             }}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Type a message..."
+            placeholder={hasPartner ? "Type a message..." : "Waiting for partner..."}
+            disabled={!hasPartner}
           />
-          <button className="send-btn" onClick={sendMessage}>Send</button>
+          <button className="send-btn" onClick={sendMessage} disabled={!hasPartner}>Send</button>
           <button className="btn-secondary next-btn" onClick={handleNext}>Next</button>
         </div>
       </div>
