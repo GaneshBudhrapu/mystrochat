@@ -4,6 +4,8 @@ import LandingPage from "./components/LandingPage";
 import ChatMode from "./components/ChatMode";
 import GlobalRoomMode from "./components/GlobalRoomMode";
 import CallMode from "./components/CallMode";
+import MiniGamesMode from "./components/MiniGamesMode";
+import TicTacToeMode from "./components/TicTacToeMode";
 import "./App.css";
 
 function App() {
@@ -35,6 +37,8 @@ function App() {
       {mode === "room" && <GlobalRoomMode setMode={setMode} username={username} />}
       {mode === "video" && <CallMode setMode={setMode} username={username} type="video" />}
       {mode === "audio" && <CallMode setMode={setMode} username={username} type="audio" />}
+      {mode === "games" && <MiniGamesMode setMode={setMode} />}
+      {mode === "tictactoe" && <TicTacToeMode setMode={setMode} username={username} />}
     </div>
   );
 }

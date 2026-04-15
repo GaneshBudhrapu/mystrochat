@@ -7,11 +7,10 @@ interface LandingProps {
 export default function LandingPage({ setMode, onlineUsers, username }: LandingProps) {
   return (
     <div className="landing-container">
-      
       <div className="landing-header">
-        <h1 className="logo">Mystro<span>Chat</span> ⚡</h1>
+        <h1 className="logo">Mystro<span>Chat</span></h1>
         <p className="welcome-text">Welcome, <b>{username}</b></p>
-        
+
         <div className="stats-badge">
           <span className="pulse-dot"></span>
           {onlineUsers} users online
@@ -50,8 +49,15 @@ export default function LandingPage({ setMode, onlineUsers, username }: LandingP
             <p>Face-to-face random chat</p>
           </div>
         </div>
+
+        <div className="action-card games-card" onClick={() => setMode("games")}>
+          <span className="card-icon">🎮</span>
+          <div className="card-text">
+            <h3>Mini Games</h3>
+            <p>Play quick games together</p>
+          </div>
+        </div>
       </div>
-      
     </div>
   );
 }
