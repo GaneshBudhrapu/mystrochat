@@ -71,6 +71,13 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 }
 .header h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0; display: flex; align-items: center; gap: 8px;}
 .sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.typing-status {
+  min-height: 16px;
+  margin: 3px 0 0;
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+}
 .right-header { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
 
 /* --- PREMIUM BUTTONS --- */

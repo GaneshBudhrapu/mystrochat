@@ -186,6 +186,7 @@ export default function ChatMode({ setMode, username }: ChatProps) {
         <div>
           <h2>💬 1-on-1 Chat</h2>
           <p className="sub">{username}</p>
+          {isTyping && <p className="typing-status">Typing...</p>}
         </div>
         <div className="right-header">
           <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#22c55e" }}>{status}</p>
@@ -216,7 +217,6 @@ export default function ChatMode({ setMode, username }: ChatProps) {
             </div>
           );
         })}
-        {isTyping && <div className="msg stranger typing">Typing...</div>}
       </div>
 
       <div className="input-area chat-input-area">
