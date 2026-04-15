@@ -547,6 +547,7 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
 
 @media (max-width: 600px) {
   .games-grid { grid-template-columns: 1fr; }
+  .action-grid { grid-template-columns: 1fr; width: min(100%, 820px); }
   .game-stage { padding: 16px; }
   .players-strip { grid-template-columns: 1fr; }
   .tictactoe-board { width: min(92vw, 360px); }
