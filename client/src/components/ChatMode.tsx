@@ -102,6 +102,16 @@ export default function ChatMode({ setMode, username }: ChatProps) {
       setTimeout(() => setIsTyping(false), 1200);
     });
 
+    socket.on("moderation notice", (notice: string) => {
+      setStatus(notice);
+    });
+
+    socket.on("user blocked", (blockedName: string) => {
+      setMessages([]);
+      setStatus(`Blocked ${blockedName}. Finding new user...`);
+      socket.emit("join-mode", "chat");
+    });
+
     return () => {
       // 👻 BUG 2 FIX: Tell server we left so we don't become a "Ghost"
       socket.emit("next"); 
@@ -112,6 +122,8 @@ export default function ChatMode({ setMode, username }: ChatProps) {
       socket.off("message");
       socket.off("partner disconnected");
       socket.off("typing");
+      socket.off("moderation notice");
+      socket.off("user blocked");
     };
   }, []);
 
@@ -180,6 +192,17 @@ export default function ChatMode({ setMode, username }: ChatProps) {
     setStatus("Finding new user...");
   };
 
+  const handleReport = () => {
+    socket.emit("report-user", "Reported from 1-on-1 chat");
+    setStatus("Report submitted.");
+  };
+
+  const handleBlock = () => {
+    socket.emit("block-user");
+    setMessages([]);
+    setStatus("Blocking user...");
+  };
+
   return (
     <div className="chat-container">
       <div className="header">
@@ -190,7 +213,11 @@ export default function ChatMode({ setMode, username }: ChatProps) {
         </div>
         <div className="right-header">
           <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#22c55e" }}>{status}</p>
-          <button className="btn-danger" onClick={() => setMode("landing")}>Leave</button>
+          <div className="moderation-actions">
+            <button className="btn-secondary compact-btn" onClick={handleReport}>Report</button>
+            <button className="btn-secondary compact-btn" onClick={handleBlock}>Block</button>
+            <button className="btn-danger compact-btn" onClick={() => setMode("landing")}>Leave</button>
+          </div>
         </div>
       </div>
 

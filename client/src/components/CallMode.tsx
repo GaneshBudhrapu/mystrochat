@@ -85,10 +85,30 @@ export default function CallMode({ setMode, username, type }: CallProps) {
       socket.emit("join-mode", type);
     };
 
+    const handleModerationNotice = (notice: string) => {
+      if (!mounted) return;
+      setStatus(notice);
+    };
+
+    const handleUserBlocked = (blockedName: string) => {
+      if (!mounted) return;
+      setStatus(`Blocked ${blockedName}. Finding new...`);
+      if (currentCall.current) {
+        currentCall.current.close();
+        currentCall.current = null;
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+      socket.emit("join-mode", type);
+    };
+
     // Register handlers without wiping others
     socket.on("chat start", handleChatStart);
     socket.on("signal", handleSignal);
     socket.on("partner disconnected", handlePartnerDisconnected);
+    socket.on("moderation notice", handleModerationNotice);
+    socket.on("user blocked", handleUserBlocked);
 
     // --- Media & WebRTC Setup ---
     navigator.mediaDevices.getUserMedia({ video: type === "video", audio: true })
@@ -135,6 +155,8 @@ export default function CallMode({ setMode, username, type }: CallProps) {
       socket.off("chat start", handleChatStart);
       socket.off("signal", handleSignal);
       socket.off("partner disconnected", handlePartnerDisconnected);
+      socket.off("moderation notice", handleModerationNotice);
+      socket.off("user blocked", handleUserBlocked);
       
       if (currentCall.current) {
         currentCall.current.close();
@@ -161,6 +183,16 @@ export default function CallMode({ setMode, username, type }: CallProps) {
     socket.emit("join-mode", type);   
   };
 
+  const handleReport = () => {
+    socket.emit("report-user", `Reported from ${type} call`);
+    setStatus("Report submitted.");
+  };
+
+  const handleBlock = () => {
+    socket.emit("block-user");
+    setStatus("Blocking user...");
+  };
+
   return (
     <div className="chat-container">
       <div className="header">
@@ -170,7 +202,11 @@ export default function CallMode({ setMode, username, type }: CallProps) {
         </div>
         <div className="right-header">
           <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#22c55e" }}>{status}</p>
-          <button className="btn-danger" onClick={() => setMode("landing")}>Leave</button>
+          <div className="moderation-actions">
+            <button className="btn-secondary compact-btn" onClick={handleReport}>Report</button>
+            <button className="btn-secondary compact-btn" onClick={handleBlock}>Block</button>
+            <button className="btn-danger compact-btn" onClick={() => setMode("landing")}>Leave</button>
+          </div>
         </div>
       </div>
       

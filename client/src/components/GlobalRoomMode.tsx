@@ -14,6 +14,7 @@ interface RoomMessage {
 export default function GlobalRoomMode({ setMode, username }: GlobalRoomProps) {
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [input, setInput] = useState("");
+  const [notice, setNotice] = useState("");
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,7 +22,13 @@ export default function GlobalRoomMode({ setMode, username }: GlobalRoomProps) {
     socket.on("receive-global-msg", (data: RoomMessage) => {
       setMessages((prev) => [...prev, data]);
     });
-    return () => { socket.off("receive-global-msg"); };
+    socket.on("moderation notice", (moderationNotice: string) => {
+      setNotice(moderationNotice);
+    });
+    return () => {
+      socket.off("receive-global-msg");
+      socket.off("moderation notice");
+    };
   }, []);
 
   useEffect(() => {
@@ -40,6 +47,7 @@ export default function GlobalRoomMode({ setMode, username }: GlobalRoomProps) {
         <div>
           <h2>🌍 Global Chat Room</h2>
           <p className="sub">{username}</p>
+          {notice && <p className="typing-status">{notice}</p>}
         </div>
         <div className="right-header">
           <button className="btn-danger" onClick={() => setMode("landing")}>Leave Room</button>

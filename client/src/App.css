@@ -80,6 +80,18 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 }
 .right-header { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
 
+.moderation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.compact-btn {
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
 /* --- PREMIUM BUTTONS --- */
 button {
   padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer;
