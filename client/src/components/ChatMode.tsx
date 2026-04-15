@@ -17,11 +17,55 @@ type IncomingMessage = string | {
   content?: string;
 };
 
+const makeSticker = (label: string, bg: string, accent: string) => {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="220" height="220" viewBox="0 0 220 220">
+      <rect width="220" height="220" rx="44" fill="${bg}"/>
+      <path d="M166 20h18c8.8 0 16 7.2 16 16v18l-34-34Z" fill="${accent}" opacity=".9"/>
+      <circle cx="68" cy="76" r="14" fill="white" opacity=".92"/>
+      <circle cx="152" cy="76" r="14" fill="white" opacity=".92"/>
+      <path d="M70 132c22 24 58 24 80 0" fill="none" stroke="white" stroke-width="13" stroke-linecap="round"/>
+      <text x="110" y="190" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="800" fill="white">${label}</text>
+    </svg>`;
+
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+};
+
+const stickers = [
+  { label: "LOL", src: makeSticker("LOL", "#14b8a6", "#f43f5e") },
+  { label: "HI", src: makeSticker("HI", "#0f172a", "#22c55e") },
+  { label: "WOW", src: makeSticker("WOW", "#7c2d12", "#f59e0b") },
+  { label: "GG", src: makeSticker("GG", "#312e81", "#38bdf8") },
+];
+
+function GalleryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="action-icon">
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <circle cx="8.5" cy="9" r="1.6" />
+      <path d="M5.5 17l4.4-4.4 3.1 3.1 2.1-2.1 3.4 3.4" />
+    </svg>
+  );
+}
+
+function StickerIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="action-icon">
+      <path d="M6.5 3.8h8.7L20.2 9v8.5a2.7 2.7 0 0 1-2.7 2.7h-11a2.7 2.7 0 0 1-2.7-2.7v-11a2.7 2.7 0 0 1 2.7-2.7Z" />
+      <path d="M15 4v3.2A1.8 1.8 0 0 0 16.8 9H20" />
+      <path d="M8 13.5c1.9 2.1 5.9 2.1 8 0" />
+      <circle cx="9" cy="10" r=".8" />
+      <circle cx="15" cy="10" r=".8" />
+    </svg>
+  );
+}
+
 export default function ChatMode({ setMode, username }: ChatProps) {
   const [status, setStatus] = useState("Connecting...");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [showStickerTray, setShowStickerTray] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,9 +163,14 @@ export default function ChatMode({ setMode, username }: ChatProps) {
   };
 
   const handleGif = () => {
-    const gifUrl = window.prompt("Paste a GIF link");
+    const gifUrl = window.prompt("Paste a GIF link or pick a sticker below");
     if (!gifUrl) return;
     sendMediaMessage("gif", gifUrl);
+  };
+
+  const sendSticker = (src: string) => {
+    sendMediaMessage("gif", src);
+    setShowStickerTray(false);
   };
 
   const handleNext = () => {
@@ -167,11 +216,37 @@ export default function ChatMode({ setMode, username }: ChatProps) {
       <div className="input-area chat-input-area">
         <div className="media-actions" aria-label="Message extras">
           <button className="icon-btn" onClick={() => imageInputRef.current?.click()} aria-label="Send image">
-            IMG
+            <GalleryIcon />
           </button>
-          <button className="icon-btn" onClick={handleGif} aria-label="Send GIF">
-            GIF
+          <button
+            className="icon-btn"
+            onClick={() => setShowStickerTray((isOpen) => !isOpen)}
+            onDoubleClick={handleGif}
+            aria-label="Open stickers"
+            aria-expanded={showStickerTray}
+          >
+            <StickerIcon />
           </button>
+          {showStickerTray && (
+            <div className="sticker-tray" aria-label="Sticker picker">
+              <div className="sticker-tray-header">
+                <span>Stickers</span>
+                <button className="sticker-link-btn" onClick={handleGif}>GIF URL</button>
+              </div>
+              <div className="sticker-grid">
+                {stickers.map((sticker) => (
+                  <button
+                    className="sticker-option"
+                    key={sticker.label}
+                    onClick={() => sendSticker(sticker.src)}
+                    aria-label={`Send ${sticker.label} sticker`}
+                  >
+                    <img src={sticker.src} alt="" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <input
             ref={imageInputRef}
             className="hidden-file-input"
