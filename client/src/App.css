@@ -57,7 +57,7 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 
 @media (max-width: 600px) {
   .chat-container { height: 100dvh; max-height: 100dvh; border-radius: 0; border: none; }
-  .landing-container { padding: 32px 20px; border-radius: 8px; margin: 16px; width: auto; }
+  .landing-container { padding: 32px 20px; border-radius: 8px; margin: 16px; width: min(100%, 820px); }
 }
 
 /* --- HEADER --- */
