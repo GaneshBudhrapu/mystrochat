@@ -42,7 +42,7 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 
 /* --- PREMIUM CONTAINERS (Glassmorphism) --- */
 .landing-container, .chat-container {
-  width: 100%; max-width: 960px;
+  width: 100%; max-width: 1180px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
@@ -53,7 +53,7 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 }
 
 .chat-container { height: calc(100dvh - 32px); max-height: none; }
-.landing-container { max-width: 500px; max-height: calc(100dvh - 32px); padding: 36px 28px; text-align: center; overflow-y: auto; }
+.landing-container { max-width: 560px; max-height: calc(100dvh - 32px); padding: 36px 28px; text-align: center; overflow-y: auto; }
 
 @media (max-width: 600px) {
   .chat-container { height: 100dvh; max-height: 100dvh; border-radius: 0; border: none; }
