@@ -53,7 +53,7 @@ body { background: var(--bg-dark); background-image: var(--bg-gradient); color: 
 }
 
 .chat-container { height: calc(100dvh - 32px); max-height: none; }
-.landing-container { max-width: 560px; max-height: calc(100dvh - 32px); padding: 36px 28px; text-align: center; overflow-y: auto; }
+.landing-container { max-width: 920px; max-height: calc(100dvh - 32px); padding: 36px 34px; text-align: center; overflow-y: auto; }
 
 @media (max-width: 600px) {
   .chat-container { height: 100dvh; max-height: 100dvh; border-radius: 0; border: none; }
@@ -287,7 +287,13 @@ input:focus { border-color: var(--accent-primary); background: rgba(255, 255, 25
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.action-grid {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 18px;
+}
 @media (max-width: 500px) { .action-grid { grid-template-columns: 1fr; } }
 
 .action-card {
