@@ -195,8 +195,14 @@ export default function ChatMode({ setMode, username }: ChatProps) {
 
       <div className="chat-box" ref={chatRef}>
         {messages.map((msg, i) => {
+          const messageClass = [
+            "msg",
+            msg.sender === "you" ? "you" : "stranger",
+            msg.kind !== "text" ? "media-msg" : "",
+          ].filter(Boolean).join(" ");
+
           return (
-            <div key={i} className={msg.sender === "you" ? "msg you" : "msg stranger"}>
+            <div key={i} className={messageClass}>
               {msg.kind === "text" ? (
                 msg.content
               ) : (
