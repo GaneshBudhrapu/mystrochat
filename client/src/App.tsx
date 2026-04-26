@@ -6,6 +6,7 @@ import GlobalRoomMode from "./components/GlobalRoomMode";
 import CallMode from "./components/CallMode";
 import MiniGamesMode from "./components/MiniGamesMode";
 import TicTacToeMode from "./components/TicTacToeMode";
+import DrawingGuessMode from "./components/DrawingGuessMode"; // NEW IMPORT
 import "./App.css";
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
       {mode === "audio" && <CallMode setMode={setMode} username={username} type="audio" />}
       {mode === "games" && <MiniGamesMode setMode={setMode} />}
       {mode === "tictactoe" && <TicTacToeMode setMode={setMode} username={username} />}
+      {mode === "drawing" && <DrawingGuessMode setMode={setMode} username={username} />}
     </div>
   );
 }
