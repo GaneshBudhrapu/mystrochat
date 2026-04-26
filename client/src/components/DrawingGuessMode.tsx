@@ -79,14 +79,41 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.lineCap = "round";
-        ctx.strokeStyle = "#3b82f6";
+        ctx.strokeStyle = "#3b82f6"; // Modern blue ink
         ctx.lineWidth = 5;
         ctxRef.current = ctx;
       }
     }
   }, []);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // 📐 THE OFFSET FIX: Calculate exactly where the pointer is on a stretched canvas
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;   
+    const scaleY = canvas.height / rect.height;
+
+    let clientX, clientY;
+    if ('touches' in e) { // Mobile Touch
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else { // PC Mouse
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    // Prevent scrolling on mobile while drawing
+    if ('touches' in e && e.cancelable) e.preventDefault(); 
+    
     if (!isDrawer || game?.status !== "playing") return;
     isDrawing.current = true;
     draw(e);
@@ -99,13 +126,12 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
     socket.emit("drawing-path", { x: 0, y: 0, isDrawing: false });
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing.current || !isDrawer || !ctxRef.current || game?.status !== "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    
+    const coords = getCoordinates(e);
+    if (!coords) return;
+    const { x, y } = coords;
 
     ctxRef.current.lineTo(x, y);
     ctxRef.current.stroke();
@@ -118,8 +144,8 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
   const sendGuess = () => {
     if (!input.trim() || !game || game.status !== "playing") return;
     if (isDrawer) {
-      setChats(prev => [...prev, { sender: username, text: input }]);
-      socket.emit("drawing-chat", { sender: username, text: input });
+      setChats(prev => [...prev, { sender: username, text: input.trim() }]);
+      socket.emit("drawing-chat", { sender: username, text: input.trim() });
     } else {
       socket.emit("drawing-guess", input);
     }
@@ -148,10 +174,16 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
         <div className="canvas-wrapper" style={{ flex: '1 1 400px', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '2px solid #334155' }}>
           <canvas
             ref={canvasRef}
+            // PC Events
             onMouseDown={startDrawing}
             onMouseUp={stopDrawing}
             onMouseOut={stopDrawing}
             onMouseMove={draw}
+            // 📱 THE MOBILE FIX: Touch Events
+            onTouchStart={startDrawing}
+            onTouchEnd={stopDrawing}
+            onTouchCancel={stopDrawing}
+            onTouchMove={draw}
             style={{ cursor: isDrawer ? 'crosshair' : 'default', display: 'block', width: '100%', height: '100%', touchAction: 'none' }}
           />
         </div>

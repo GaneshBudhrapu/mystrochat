@@ -50,7 +50,15 @@ let onlineUsers = 0;
 // --- CONSTANTS & HELPERS ---
 const names = ["Pikachu", "Charizard", "Bulbasaur", "Squirtle", "Eevee", "Snorlax", "Gengar", "Lucario", "Greninja", "Mewtwo", "Dragonite", "Blaziken"];
 const abusiveWords = ["abuse", "badword", "bastard", "bitch", "damn", "fuck", "idiot", "moron", "stupid", "shit"];
-const drawingWords = ["sword", "pirate", "demon", "dragon", "cake", "laptop", "ninja", "pizza", "mountain", "robot", "ocean", "guitar"];
+
+// 🎨 MASSIVELY EXPANDED WORD LIST
+const drawingWords = [
+  "sword", "pirate", "demon", "dragon", "cake", "laptop", "ninja", "pizza", "mountain", "robot", "ocean", "guitar",
+  "elephant", "telephone", "spaceship", "castle", "bridge", "volcano", "glasses", "penguin", "bicycle", "umbrella", 
+  "giraffe", "hamburger", "spider", "camera", "snowman", "mermaid", "vampire", "zombie", "alien", "basketball", 
+  "rainbow", "helicopter", "butterfly", "crocodile", "dinosaur", "kangaroo", "submarine", "tornado", "waterfall", 
+  "windmill", "pyramid", "compass", "telescope", "hospital", "strawberry", "mosquito", "octopus", "parachute"
+];
 
 function getRandomName() { return names[Math.floor(Math.random() * names.length)]; }
 function getRandomWord() { return drawingWords[Math.floor(Math.random() * drawingWords.length)]; }
@@ -330,11 +338,15 @@ io.on("connection", (socket) => {
     const game = gameId ? drawingGames.get(gameId) : null;
     if (!game || game.status !== "playing") return;
 
-    if (guess.toLowerCase() === game.word.toLowerCase() && socket.id !== game.drawerId) {
+    // 🐛 FIX: Trim hidden spaces and lowercase perfectly
+    const sanitizedGuess = guess.trim().toLowerCase();
+    const targetWord = game.word.trim().toLowerCase();
+
+    if (sanitizedGuess === targetWord && socket.id !== game.drawerId) {
       game.status = "finished"; game.winner = socket.id;
       io.to(gameId).emit("drawing-ended", { message: `${socket.data.username} guessed it! The word was "${game.word}".`, winner: socket.id, word: game.word });
     } else {
-      io.to(gameId).emit("drawing-chat", { sender: socket.data.username, text: guess });
+      io.to(gameId).emit("drawing-chat", { sender: socket.data.username, text: guess.trim() });
     }
   });
   socket.on("leave-drawing", () => leaveDrawing(socket));
