@@ -158,14 +158,14 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
   const selectEraser = () => { setBrushColor("#ffffff"); setBrushSize(25); };
 
   return (
-    <div className="chat-container drawing-container" style={{ maxWidth: '800px' }}>
+    <div className="chat-container drawing-container" style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
       <div className="header">
         <div>
           <h2>✏️ Drawing Guess</h2>
           <p className="sub">{username}</p>
         </div>
         <div className="right-header">
-          <p className="game-status">{status}</p>
+          <p className="game-status" style={{ fontSize: '13px' }}>{status}</p>
           <div className="moderation-actions">
              {game?.status === "finished" && (
                 <button className="btn-secondary compact-btn" onClick={() => socket.emit("drawing-next-round")}>Next Round</button>
@@ -175,31 +175,37 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
         </div>
       </div>
 
-      <div className="drawing-layout" style={{ display: 'flex', flexWrap: 'wrap', padding: '20px', gap: '20px' }}>
-        <div className="canvas-column" style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="drawing-layout" style={{ display: 'flex', flexWrap: 'wrap', padding: '15px', gap: '15px' }}>
+        
+        {/* CANVAS COLUMN */}
+        <div className="canvas-column" style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
           
           {isDrawer && game?.status === "playing" && (
-            <div className="toolbar" style={{ display: 'flex', gap: '10px', padding: '10px', background: '#1e293b', borderRadius: '8px', alignItems: 'center' }}>
+            // 📱 FIX 1: Added flexWrap to toolbar so it scales perfectly on mobile
+            <div className="toolbar" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '10px', background: '#1e293b', borderRadius: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8' }}>TOOLS:</span>
-              {COLORS.map(c => (
-                <button 
-                  key={c} 
-                  onClick={() => selectColor(c)}
-                  style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, border: brushColor === c ? '3px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }}
-                  title="Color"
-                />
-              ))}
-              <div style={{ flex: 1 }} />
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {COLORS.map(c => (
+                  <button 
+                    key={c} 
+                    onClick={() => selectColor(c)}
+                    style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, border: brushColor === c ? '2px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }}
+                    title="Color"
+                  />
+                ))}
+              </div>
+              <div style={{ flex: 1, minWidth: '10px' }} />
               <button 
                 onClick={selectEraser} 
-                style={{ padding: '4px 10px', fontSize: '12px', background: brushColor === '#ffffff' ? '#3b82f6' : '#334155', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                style={{ padding: '6px 12px', fontSize: '12px', background: brushColor === '#ffffff' ? '#3b82f6' : '#334155', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 🧼 Eraser
               </button>
             </div>
           )}
 
-          <div className="canvas-wrapper" style={{ flex: 1, background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '2px solid #334155', minHeight: '300px' }}>
+          {/* 📱 FIX 2: Replaced minHeight with aspectRatio so canvas scales down beautifully on small screens */}
+          <div className="canvas-wrapper" style={{ width: '100%', aspectRatio: '5/4', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '2px solid #334155' }}>
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
@@ -215,10 +221,12 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
           </div>
         </div>
 
-        <div className="chat-wrapper" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div className="chat-box" style={{ flex: 1, minHeight: '200px', background: '#1e293b', padding: '10px', borderRadius: '8px', overflowY: 'auto' }}>
+        {/* CHAT COLUMN */}
+        {/* 📱 FIX 3: Adjusted flex basis to ensure the chat neatly drops below the canvas on mobile */}
+        <div className="chat-wrapper" style={{ flex: '1 1 250px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="chat-box" style={{ flex: 1, minHeight: '150px', maxHeight: '250px', background: '#1e293b', padding: '10px', borderRadius: '8px', overflowY: 'auto' }}>
             {chats.map((c, i) => (
-              <div key={i} style={{ fontSize: '14px', marginBottom: '8px' }}>
+              <div key={i} style={{ fontSize: '14px', marginBottom: '8px', wordBreak: 'break-word' }}>
                 <b style={{ color: c.sender === username ? '#3b82f6' : '#94a3b8' }}>{c.sender}: </b> 
                 {c.text}
               </div>
@@ -231,6 +239,7 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
               onKeyDown={e => e.key === "Enter" && sendGuess()}
               placeholder={isDrawer ? "Chat with guesser..." : "Type your guess..."}
               disabled={game?.status !== "playing"}
+              style={{ flex: 1 }}
             />
             <button onClick={sendGuess} disabled={game?.status !== "playing"}>Send</button>
           </div>
