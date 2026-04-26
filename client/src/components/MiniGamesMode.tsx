@@ -19,11 +19,12 @@ export default function MiniGamesMode({ setMode }: MiniGamesProps) {
           </div>
         </div>
 
-        <div className="action-card game-card disabled-card">
-          <span className="card-icon">✏</span>
+        {/* ✏️ UNLOCKED: Drawing Guess Card */}
+        <div className="action-card game-card drawing-card" onClick={() => setMode("drawing")}>
+          <span className="card-icon">✏️</span>
           <div className="card-text">
             <h3>Drawing Guess</h3>
-            <p>Coming soon</p>
+            <p>Sketch and solve!</p>
           </div>
         </div>
 
