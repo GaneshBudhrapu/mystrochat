@@ -51,7 +51,6 @@ let onlineUsers = 0;
 const names = ["Pikachu", "Charizard", "Bulbasaur", "Squirtle", "Eevee", "Snorlax", "Gengar", "Lucario", "Greninja", "Mewtwo", "Dragonite", "Blaziken"];
 const abusiveWords = ["abuse", "badword", "bastard", "bitch", "damn", "fuck", "idiot", "moron", "stupid", "shit"];
 
-// 🎨 MASSIVELY EXPANDED WORD LIST
 const drawingWords = [
   "sword", "pirate", "demon", "dragon", "cake", "laptop", "ninja", "pizza", "mountain", "robot", "ocean", "guitar",
   "elephant", "telephone", "spaceship", "castle", "bridge", "volcano", "glasses", "penguin", "bicycle", "umbrella", 
@@ -128,13 +127,13 @@ function findPartner(socket: Socket, mode: Mode) {
 
 // --- GAME SPECIFIC HELPERS ---
 
-// TicTacToe
 function serializeTicTacToe(game: TicTacToeGame) {
   return {
     id: game.id, board: game.board, turn: game.turn, status: game.status, winner: game.winner,
     players: game.players.filter((id): id is string => Boolean(id)).map((id) => ({ id, name: game.names[id], symbol: game.symbols[id] })),
   };
 }
+
 function getTicTacToeWinner(board: TicTacToeCell[]) {
   const lines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
   for (const [a, b, c] of lines) {
@@ -142,6 +141,7 @@ function getTicTacToeWinner(board: TicTacToeCell[]) {
   }
   return board.every(Boolean) ? "draw" : null;
 }
+
 function leaveTicTacToe(socket: Socket) {
   if (waitingTicTacToe === socket) waitingTicTacToe = null;
   const gameId = socket.data.ticTacToeGameId as string | undefined;
@@ -159,7 +159,6 @@ function leaveTicTacToe(socket: Socket) {
   }
 }
 
-// Drawing Guess
 function leaveDrawing(socket: Socket) {
   if (waitingDrawing === socket) waitingDrawing = null;
   const gameId = socket.data.drawingGameId;
@@ -208,17 +207,11 @@ io.on("connection", (socket) => {
 
   // Core Chat / Video Routing
   socket.on("join-mode", (mode: Mode) => {
-    leaveTicTacToe(socket);
-    leaveDrawing(socket);
-    leaveCurrentMatch(socket);
-    socket.leave("global_room");
-
+    leaveTicTacToe(socket); leaveDrawing(socket); leaveCurrentMatch(socket); socket.leave("global_room");
     const partner = findPartner(socket, mode);
     if (partner) {
-      socket.data.partner = partner;
-      partner.data.partner = socket;
-      socket.emit("chat start", partner.data.username);
-      partner.emit("chat start", socket.data.username);
+      socket.data.partner = partner; partner.data.partner = socket;
+      socket.emit("chat start", partner.data.username); partner.emit("chat start", socket.data.username);
       return;
     }
     if (!waitingQueues[mode].includes(socket)) waitingQueues[mode].push(socket);
@@ -226,10 +219,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-global-room", () => {
-    leaveTicTacToe(socket);
-    leaveDrawing(socket);
-    leaveCurrentMatch(socket);
-    socket.join("global_room");
+    leaveTicTacToe(socket); leaveDrawing(socket); leaveCurrentMatch(socket); socket.join("global_room");
   });
 
   socket.on("send-global-msg", (msg: string) => io.to("global_room").emit("receive-global-msg", { text: msg, sender: socket.data.username }));
@@ -246,7 +236,7 @@ io.on("connection", (socket) => {
     const targetReports = reports.get(targetId) ?? [];
     targetReports.push({ reporterId: socket.data.userId, reporterName: socket.data.username, reason: String(reason).slice(0, 200), createdAt: new Date().toISOString() });
     reports.set(targetId, targetReports);
-    socket.emit("moderation notice", "Report submitted. Thanks for helping keep MystroChat safer.");
+    socket.emit("moderation notice", "Report submitted.");
   });
 
   socket.on("block-user", () => {
@@ -261,8 +251,7 @@ io.on("connection", (socket) => {
   socket.on("join-tictactoe", () => {
     leaveCurrentMatch(socket); leaveDrawing(socket); socket.leave("global_room");
     if (waitingTicTacToe && waitingTicTacToe.connected && waitingTicTacToe !== socket) {
-      const opponent = waitingTicTacToe;
-      waitingTicTacToe = null;
+      const opponent = waitingTicTacToe; waitingTicTacToe = null;
       const gameId = `tictactoe:${opponent.id}:${socket.id}:${Date.now()}`;
       const game: TicTacToeGame = {
         id: gameId, players: [opponent.id, socket.id], board: Array(9).fill(null), turn: "X", status: "playing", winner: null,
@@ -275,17 +264,13 @@ io.on("connection", (socket) => {
       io.to(gameId).emit("tictactoe-state", serializeTicTacToe(game));
       return;
     }
-    waitingTicTacToe = socket;
-    socket.emit("tictactoe-waiting");
+    waitingTicTacToe = socket; socket.emit("tictactoe-waiting");
   });
 
   socket.on("tictactoe-move", (cellIndex: number) => {
-    const gameId = socket.data.ticTacToeGameId;
-    if (!gameId) return;
-    const game = ticTacToeGames.get(gameId);
-    if (!game || game.status !== "playing") return;
-    const symbol = game.symbols[socket.id];
-    if (!symbol || game.turn !== symbol || game.board[cellIndex]) return;
+    const gameId = socket.data.ticTacToeGameId; if (!gameId) return;
+    const game = ticTacToeGames.get(gameId); if (!game || game.status !== "playing") return;
+    const symbol = game.symbols[socket.id]; if (!symbol || game.turn !== symbol || game.board[cellIndex]) return;
 
     game.board[cellIndex] = symbol;
     const winner = getTicTacToeWinner(game.board);
@@ -295,9 +280,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("tictactoe-restart", () => {
-    const gameId = socket.data.ticTacToeGameId;
-    const game = gameId ? ticTacToeGames.get(gameId) : null;
-    if (!game) return;
+    const gameId = socket.data.ticTacToeGameId; const game = gameId ? ticTacToeGames.get(gameId) : null; if (!game) return;
     game.board = Array(9).fill(null); game.turn = "X"; game.status = "playing"; game.winner = null;
     io.to(game.id).emit("tictactoe-state", serializeTicTacToe(game));
   });
@@ -307,8 +290,7 @@ io.on("connection", (socket) => {
   socket.on("join-drawing", () => {
     leaveCurrentMatch(socket); leaveTicTacToe(socket); socket.leave("global_room");
     if (waitingDrawing && waitingDrawing.connected && waitingDrawing !== socket) {
-      const opponent = waitingDrawing;
-      waitingDrawing = null;
+      const opponent = waitingDrawing; waitingDrawing = null;
       const gameId = `drawing:${opponent.id}:${socket.id}:${Date.now()}`;
       const drawerId = Math.random() > 0.5 ? opponent.id : socket.id;
       
@@ -319,8 +301,7 @@ io.on("connection", (socket) => {
       io.to(gameId).emit("drawing-start", game);
       return;
     }
-    waitingDrawing = socket;
-    socket.emit("drawing-waiting");
+    waitingDrawing = socket; socket.emit("drawing-waiting");
   });
 
   socket.on("drawing-path", (data) => {
@@ -338,7 +319,6 @@ io.on("connection", (socket) => {
     const game = gameId ? drawingGames.get(gameId) : null;
     if (!game || game.status !== "playing") return;
 
-    // 🐛 FIX: Trim hidden spaces and lowercase perfectly
     const sanitizedGuess = guess.trim().toLowerCase();
     const targetWord = game.word.trim().toLowerCase();
 
@@ -349,6 +329,21 @@ io.on("connection", (socket) => {
       io.to(gameId).emit("drawing-chat", { sender: socket.data.username, text: guess.trim() });
     }
   });
+
+  socket.on("drawing-next-round", () => {
+    const gameId = socket.data.drawingGameId;
+    const game = gameId ? drawingGames.get(gameId) : null;
+    if (!game) return;
+
+    const newDrawerId = game.players.find(id => id !== game.drawerId) || game.players[0];
+    game.drawerId = newDrawerId;
+    game.word = getRandomWord();
+    game.status = "playing";
+    game.winner = null;
+
+    io.to(gameId).emit("drawing-start", game);
+  });
+
   socket.on("leave-drawing", () => leaveDrawing(socket));
 
   // Disconnect Handling
