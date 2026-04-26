@@ -14,11 +14,16 @@ type DrawingGame = {
   status: "waiting" | "playing" | "finished";
 };
 
+const COLORS = ["#000000", "#ef4444", "#3b82f6", "#22c55e", "#eab308", "#a855f7"];
+
 export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
   const [game, setGame] = useState<DrawingGame | null>(null);
   const [status, setStatus] = useState("Finding opponent...");
   const [chats, setChats] = useState<{sender: string, text: string}[]>([]);
   const [input, setInput] = useState("");
+  
+  const [brushColor, setBrushColor] = useState("#000000");
+  const [brushSize, setBrushSize] = useState(5);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
@@ -35,6 +40,8 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
       setGame(newGame);
       setChats([]);
       setStatus(newGame.drawerId === socket.id ? `Draw: ${newGame.word}` : "Guess what they are drawing!");
+      setBrushColor("#000000"); 
+      setBrushSize(5);
       
       if (ctxRef.current && canvasRef.current) {
         ctxRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -42,12 +49,15 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
       }
     });
 
-    socket.on("drawing-path", ({ x, y, isDrawing: remoteDrawing }) => {
+    socket.on("drawing-path", ({ x, y, isDrawing: remoteDrawing, color, size }) => {
       if (!ctxRef.current) return;
       if (!remoteDrawing) {
         ctxRef.current.beginPath();
         return;
       }
+      
+      ctxRef.current.strokeStyle = color;
+      ctxRef.current.lineWidth = size;
       ctxRef.current.lineTo(x, y);
       ctxRef.current.stroke();
       ctxRef.current.beginPath();
@@ -79,41 +89,31 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.lineCap = "round";
-        ctx.strokeStyle = "#3b82f6"; // Modern blue ink
-        ctx.lineWidth = 5;
         ctxRef.current = ctx;
       }
     }
   }, []);
 
-  // 📐 THE OFFSET FIX: Calculate exactly where the pointer is on a stretched canvas
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;   
     const scaleY = canvas.height / rect.height;
 
     let clientX, clientY;
-    if ('touches' in e) { // Mobile Touch
+    if ('touches' in e) { 
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
-    } else { // PC Mouse
+    } else { 
       clientX = e.clientX;
       clientY = e.clientY;
     }
-
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
-    };
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    // Prevent scrolling on mobile while drawing
     if ('touches' in e && e.cancelable) e.preventDefault(); 
-    
     if (!isDrawer || game?.status !== "playing") return;
     isDrawing.current = true;
     draw(e);
@@ -133,12 +133,14 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
     if (!coords) return;
     const { x, y } = coords;
 
+    ctxRef.current.strokeStyle = brushColor;
+    ctxRef.current.lineWidth = brushSize;
     ctxRef.current.lineTo(x, y);
     ctxRef.current.stroke();
     ctxRef.current.beginPath();
     ctxRef.current.moveTo(x, y);
 
-    socket.emit("drawing-path", { x, y, isDrawing: true });
+    socket.emit("drawing-path", { x, y, isDrawing: true, color: brushColor, size: brushSize });
   };
 
   const sendGuess = () => {
@@ -152,6 +154,9 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
     setInput("");
   };
 
+  const selectColor = (hex: string) => { setBrushColor(hex); setBrushSize(5); };
+  const selectEraser = () => { setBrushColor("#ffffff"); setBrushSize(25); };
+
   return (
     <div className="chat-container drawing-container" style={{ maxWidth: '800px' }}>
       <div className="header">
@@ -163,7 +168,7 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
           <p className="game-status">{status}</p>
           <div className="moderation-actions">
              {game?.status === "finished" && (
-                <button className="btn-secondary compact-btn" onClick={() => socket.emit("join-drawing")}>Play Again</button>
+                <button className="btn-secondary compact-btn" onClick={() => socket.emit("drawing-next-round")}>Next Round</button>
              )}
             <button className="btn-danger compact-btn" onClick={() => { socket.emit("leave-drawing"); setMode("games"); }}>Leave</button>
           </div>
@@ -171,21 +176,43 @@ export default function DrawingGuessMode({ setMode, username }: DrawingProps) {
       </div>
 
       <div className="drawing-layout" style={{ display: 'flex', flexWrap: 'wrap', padding: '20px', gap: '20px' }}>
-        <div className="canvas-wrapper" style={{ flex: '1 1 400px', background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '2px solid #334155' }}>
-          <canvas
-            ref={canvasRef}
-            // PC Events
-            onMouseDown={startDrawing}
-            onMouseUp={stopDrawing}
-            onMouseOut={stopDrawing}
-            onMouseMove={draw}
-            // 📱 THE MOBILE FIX: Touch Events
-            onTouchStart={startDrawing}
-            onTouchEnd={stopDrawing}
-            onTouchCancel={stopDrawing}
-            onTouchMove={draw}
-            style={{ cursor: isDrawer ? 'crosshair' : 'default', display: 'block', width: '100%', height: '100%', touchAction: 'none' }}
-          />
+        <div className="canvas-column" style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          
+          {isDrawer && game?.status === "playing" && (
+            <div className="toolbar" style={{ display: 'flex', gap: '10px', padding: '10px', background: '#1e293b', borderRadius: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8' }}>TOOLS:</span>
+              {COLORS.map(c => (
+                <button 
+                  key={c} 
+                  onClick={() => selectColor(c)}
+                  style={{ width: '24px', height: '24px', borderRadius: '50%', background: c, border: brushColor === c ? '3px solid #fff' : '2px solid transparent', cursor: 'pointer', padding: 0 }}
+                  title="Color"
+                />
+              ))}
+              <div style={{ flex: 1 }} />
+              <button 
+                onClick={selectEraser} 
+                style={{ padding: '4px 10px', fontSize: '12px', background: brushColor === '#ffffff' ? '#3b82f6' : '#334155', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              >
+                🧼 Eraser
+              </button>
+            </div>
+          )}
+
+          <div className="canvas-wrapper" style={{ flex: 1, background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '2px solid #334155', minHeight: '300px' }}>
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDrawing}
+              onMouseUp={stopDrawing}
+              onMouseOut={stopDrawing}
+              onMouseMove={draw}
+              onTouchStart={startDrawing}
+              onTouchEnd={stopDrawing}
+              onTouchCancel={stopDrawing}
+              onTouchMove={draw}
+              style={{ cursor: isDrawer ? 'crosshair' : 'default', display: 'block', width: '100%', height: '100%', touchAction: 'none' }}
+            />
+          </div>
         </div>
 
         <div className="chat-wrapper" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
